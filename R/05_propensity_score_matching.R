@@ -57,8 +57,8 @@ for (i in 1:imp$m) {
       "\n")
 }
 
-saveRDS(matchit_list, "pandora_matchit_list.rds")
-saveRDS(matched_list, "pandora_matched_list.rds")
+saveRDS(matchit_list, "Data/pandora_matchit_list.rds")
+saveRDS(matched_list, "Data/pandora_matched_list.rds")
 cat("\nMI matching complete\n")
 
 # =============================================
@@ -114,7 +114,7 @@ results_mi <- do.call(rbind,
 
 cat("\n-----Pooled MI results-----\n")
 print(results_mi, row.names = FALSE)
-
-write.csv(results_mi, "pandora_results_mi.csv",
+saveRDS(results_mi, "Results/propensity_score_OR_mi.rds")
+write.csv(results_mi, "Results/propensity_score_OR_mi.csv",
           row.names = FALSE)
 

@@ -4,7 +4,8 @@
 # Run 01_setup.R first
 # =============================================
 
-data_file_location <-"D:/Projects/#2045_ICON_TACTIC/Non_tactic/Pandora/Regression analysis/pandora_clean.dta"
+# (Data folder is part of gitignore)
+data_file_location <-"Data/pandora_clean.dta"
 
 df <- read_dta(data_file_location)
 

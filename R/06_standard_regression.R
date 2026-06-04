@@ -6,7 +6,6 @@
 # =============================================
 
 
-
 run_melogit_mi <- function(outcome_var, imp,
                            n_imp = 20) {
   
@@ -117,9 +116,9 @@ results_reg_mi <- do.call(rbind,
 cat("\n-----MI regression results-----\n")
 print(results_reg_mi, row.names = FALSE)
 
-saveRDS(results_reg_mi, "pandora_results_regression_mi.rds")
+saveRDS(results_reg_mi, "Results/standard_regression_OR_mi.rds")
 write.csv(results_reg_mi,
-          "pandora_results_regression_mi.csv",
+          "Results/standard_regression_OR_mi.csv",
           row.names = FALSE)
 
-cat("\nSaved pandora_results_regression_mi.csv\n")
+cat("\nSaved standard_regression_OR_mi.csv\n")

@@ -27,18 +27,17 @@ cat("Missing per variable:\n")
 print(sapply(df_mice, function(x) sum(is.na(x))))
 
 # -----METHODS-----
+# Clean method assignment -- only variables with missing data
 imp_methods <- make.method(df_mice)
-imp_methods["bmi_cat"]       <- "polr"
-imp_methods["smoking"]       <- "polr"
-imp_methods["alcohol_cat"]   <- "polr"
-imp_methods["crp"]           <- "pmm"
-imp_methods["los"]           <- "pmm"
-imp_methods["diabetes"]      <- "polyreg"
-imp_methods["resp_failure"]  <- "polr"
-imp_methods["cvs_failure"]   <- "polr"
-imp_methods["renal_failure"] <- "polr"
 
-cat("\nMethods assigned:\n")
+imp_methods["bmi_cat"]     <- "polr"
+imp_methods["smoking"]     <- "polr"
+imp_methods["alcohol_cat"] <- "polr"
+imp_methods["crp"]         <- "pmm"
+imp_methods["los"]         <- "pmm"
+
+# Confirm nothing else assigned
+cat("Imputation methods assigned:\n")
 print(imp_methods[imp_methods != ""])
 
 # -----PREDICTOR MATRIX-----
@@ -56,7 +55,7 @@ imp <- mice(
   method          = imp_methods,
   predictorMatrix = pred,
   maxit           = 20,
-  printFlag       = FALSE
+  printFlag       = TRUE
 )
 
 # -----DIAGNOSTICS-----
@@ -69,9 +68,6 @@ print(table(mice::complete(imp, 1)$bmi_cat))
 
 plot(imp, c("bmi_cat", "smoking", "alcohol_cat", "crp"))
 
-saveRDS(imp, "pandora_imp.rds")
+saveRDS(imp, "Data/pandora_imp.rds")
 cat("\nSaved pandora_imp.rds\n")
-
-
-
 

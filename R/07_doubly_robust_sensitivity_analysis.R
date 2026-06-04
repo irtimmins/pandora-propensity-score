@@ -136,5 +136,6 @@ results_bw <- do.call(rbind,
 
 cat("\n-----Balancing weights results-----\n")
 print(results_bw, row.names = FALSE)
-
-saveRDS(results_bw, "pandora_results_balancer.rds")
+# Just keep doubly robust
+saveRDS(results_bw %>% filter(method == "Balancing weights + regression (DR)"),
+        "Results/doubly_robust_OR_mi.rds")

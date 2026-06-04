@@ -64,5 +64,5 @@ cat("\nLocal complication by GLP1:\n")
 print(table(df$local_complication, df$GLP1_use, useNA = "always"))
 
 # Save full cleaned dataset
-saveRDS(df, "pandora_clean_r.rds")
+saveRDS(df, "Data/pandora_clean_r.rds")
 cat("\nSaved pandora_clean_r.rds\n")
