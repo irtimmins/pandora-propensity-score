@@ -13,9 +13,9 @@ library(lmtest)
 library(survival)
 library(mice)
 library(tableone)
-library(EValue)
 library(balancer)
 library(lme4)
+library(forcats)
 
 # -----HELPER: OR FROM CLUSTERED SE-----
 # Manual CI from clustered SE avoids non-integer

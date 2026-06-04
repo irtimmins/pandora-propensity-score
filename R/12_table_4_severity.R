@@ -40,13 +40,24 @@ df <- df %>%
       labels = c("No", "Yes"))
   )
 
-# -----TABLE-----
-of_vars <- c("resp_failure", "cvs_failure",
-             "renal_failure", "organ_failure_severe",
-             "critical_care_adm_bin",
-             "local_complication",
-             "severity_bin", "composite")
+# -----SPLIT VARIABLES BY TYPE-----
+# Binary variables -- show both levels
+binary_vars <- c("organ_failure_severe",
+                 "critical_care_adm_bin",
+                 "local_complication",
+                 "composite")
 
+# 4-level ordinal -- show all levels
+ordinal_vars <- c("resp_failure",
+                  "cvs_failure",
+                  "renal_failure")
+
+# Severity -- show both levels
+severity_vars <- c("severity_bin")
+
+of_vars <- c(ordinal_vars, binary_vars, severity_vars)
+
+# -----TABLE-----
 tab_of <- CreateTableOne(
   vars       = of_vars,
   strata     = "GLP1_use",
@@ -55,15 +66,18 @@ tab_of <- CreateTableOne(
   addOverall = TRUE
 )
 
-cat("\n-----Organ failure and severity components-----\n")
-print(tab_of, showAllLevels = FALSE)
+cat("\n-----Severity components-----\n")
 
-write.csv(
-  print(tab_of,
-        showAllLevels = FALSE,
-        printToggle   = FALSE,
-        noSpaces      = TRUE),
-  "table_organ_failure.csv"
-)
+# showAllLevels = TRUE shows No and Yes rows
+# for binary variables
+print(tab_of, showAllLevels = TRUE)
 
-cat("\nSaved table_organ_failure.csv\n")
+# -----EXPORT-----
+tab_severity <- print(tab_of,
+                    showAllLevels = TRUE,
+                    printToggle   = FALSE,
+                    noSpaces      = TRUE)
+
+write.csv(tab_of_mat,
+          "Results/table4_severity.csv")
+

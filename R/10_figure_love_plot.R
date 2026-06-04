@@ -1,6 +1,7 @@
 # =============================================
 # 13 - LOVE PLOTS
-# Complete case + single imputed dataset
+# For propensity matching analysis.
+# single imputed dataset
 # =============================================
 
 # -----MI DATASET 1-----
@@ -13,9 +14,9 @@ love.plot(
   var.order    = "unadjusted",
   colors       = c("red", "blue"),
   shapes       = c("circle filled", "triangle filled"),
-  title        = "Covariate balance (imputed dataset 1)",
+  title        = NULL,
   sample.names = c("Unmatched", "Matched")
 )
-ggsave("loveplot_imp1.png", width = 8, height = 7, dpi = 300)
+ggsave("Results/propensity_score_loveplot_imp1.png", width = 8, height = 7, dpi = 300)
 
 cat("Love plots saved\n")
