@@ -72,12 +72,12 @@ cat("\n-----Severity components-----\n")
 # for binary variables
 print(tab_of, showAllLevels = TRUE)
 
-# -----EXPORT-----
+# -----write out results-----
 tab_severity <- print(tab_of,
                     showAllLevels = TRUE,
                     printToggle   = FALSE,
                     noSpaces      = TRUE)
 
-write.csv(tab_of_mat,
+write.csv(tab_severity ,
           "Results/table_4_severity.csv")
 

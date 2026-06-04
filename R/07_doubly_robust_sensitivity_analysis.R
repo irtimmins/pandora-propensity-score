@@ -21,6 +21,9 @@ run_balancer_weights <- function(outcome_var, imp,
     
     df_i <- mice::complete(imp, i) %>%
       haven::zap_labels() %>%
+      # Exclude underweight -- positivity violation
+      dplyr::filter(bmi_cat != "<18.5 Underweight" |
+                      is.na(bmi_cat)) %>%
       mutate(
         bmi_cat = factor(bmi_cat,
                          levels = c("18.5-24.9 Normal",

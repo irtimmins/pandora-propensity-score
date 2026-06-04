@@ -23,7 +23,17 @@ df_mice <- df %>%
                 all_of(ps_vars),
                 all_of(aux_vars),
                 all_of(outcome_vars)) %>%
-  haven::zap_labels()
+  haven::zap_labels()    %>%
+# Ensure bmi_cat has correct levels including underweight
+  mutate(
+  bmi_cat = factor(bmi_cat,
+                   levels = c("<18.5 Underweight",
+                              "18.5-24.9 Normal",
+                              "25-29.9 Overweight",
+                              "30-34.9 Class 1 Obesity",
+                              "35-39.9 Class 2 Obesity",
+                              ">40 Class 3 Obesity"))
+)
 
 cat("Missing per variable:\n")
 print(sapply(df_mice, function(x) sum(is.na(x))))

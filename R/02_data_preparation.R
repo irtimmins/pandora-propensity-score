@@ -57,18 +57,17 @@ df <- df %>%
       bmi == 4 ~ 4,
       bmi == 6 ~ 5,
       bmi == 7 ~ NA_real_,
-      TRUE ~ NA_real_
+      TRUE     ~ NA_real_
     ),
     bmi_cat = factor(bmi_cat,
-                     levels = 1:5,
-                     labels = c("18.5-24.9 Normal",
+                     levels = 0:5,
+                     labels = c("<18.5 Underweight",
+                                "18.5-24.9 Normal",
                                 "25-29.9 Overweight",
                                 "30-34.9 Class 1 Obesity",
                                 "35-39.9 Class 2 Obesity",
                                 ">40 Class 3 Obesity"))
-  ) %>%
-  # Exclude underweight -- positivity violation
-  filter(is.na(bmi_cat) | as.integer(bmi_cat) != 0)
+  )
 
 # -----SMOKING-----
 df <- df %>%

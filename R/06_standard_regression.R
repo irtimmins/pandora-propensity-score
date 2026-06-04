@@ -20,8 +20,12 @@ run_melogit_mi <- function(outcome_var, imp,
     df_i <- mice::complete(imp, i) %>%
       haven::zap_labels() %>%
       mutate(
+        # Include underweight as valid category
+        # Reference = Normal weight (18.5-24.9)
+        # as most clinically meaningful reference
         bmi_cat = factor(bmi_cat,
                          levels = c("18.5-24.9 Normal",
+                                    "<18.5 Underweight",
                                     "25-29.9 Overweight",
                                     "30-34.9 Class 1 Obesity",
                                     "35-39.9 Class 2 Obesity",

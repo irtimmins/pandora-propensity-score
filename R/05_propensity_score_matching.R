@@ -12,6 +12,11 @@ for (i in 1:imp$m) {
   
   df_i <- mice::complete(imp, i) %>%
     haven::zap_labels() %>%
+    # Exclude underweight -- positivity violation
+    # No underweight GLP-1 users so PS cannot
+    # estimate overlap for this group
+    dplyr::filter(bmi_cat != "<18.5 Underweight" |
+                    is.na(bmi_cat)) %>%
     mutate(
       bmi_cat = factor(bmi_cat,
                        levels = c("18.5-24.9 Normal",
@@ -76,7 +81,7 @@ run_pooled <- function(outcome_var, matched_list) {
     fit <- glm(
       as.formula(paste(outcome_var, "~ GLP1_use")),
       data    = mdf,
-      family  = quasibinomial,
+      family  = binomial,
       weights = weights
     )
     ct <- lmtest::coeftest(
