@@ -9,7 +9,7 @@
 love.plot(
   matchit_list[[1]],
   threshold    = 0.1,
-  abs          = TRUE,
+  abs          = FALSE,
   var.order    = "unadjusted",
   colors       = c("red", "blue"),
   shapes       = c("circle filled", "triangle filled"),
