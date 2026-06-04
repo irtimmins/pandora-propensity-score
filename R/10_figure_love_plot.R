@@ -1,10 +1,9 @@
 # =============================================
-# 13 - LOVE PLOTS
+# 10 - Love plot
 # For propensity matching analysis.
-# single imputed dataset
+# Produced for single imputed dataset
 # =============================================
 
-# -----MI DATASET 1-----
 # Single dataset, not averaged -- avoids hiding
 # cross-imputation variation
 love.plot(

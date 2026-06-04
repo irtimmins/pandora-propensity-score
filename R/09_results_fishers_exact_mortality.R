@@ -3,7 +3,6 @@
 # Fisher exact (sparse events)
 # =============================================
 
-# -----MORTALITY FISHER EXACT-----
 cat("\nMortality full cohort:\n")
 print(table(df$mort90, df$GLP1_use))
 print(fisher.test(table(df$mort90, df$GLP1_use)))

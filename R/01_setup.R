@@ -17,7 +17,10 @@ library(balancer)
 library(lme4)
 library(forcats)
 
-# -----HELPER: OR FROM CLUSTERED SE-----
+
+# Helper functions used in multiple scripts:
+
+# -----Helper function: OR FROM CLUSTERED SE-----
 # Manual CI from clustered SE avoids non-integer
 # warnings from confint() with matching weights
 get_or <- function(fit, cluster_var) {
@@ -37,7 +40,7 @@ get_or <- function(fit, cluster_var) {
   )
 }
 
-# -----HELPER: RUBIN'S RULES POOLING-----
+# -----Helper: RUBIN'S RULES POOLING-----
 # For quasibinomial + clustered SEs which
 # mice::pool does not handle
 pool_rubin <- function(ests, vars, outcome_var, label) {

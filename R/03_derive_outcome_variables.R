@@ -52,7 +52,7 @@ df <- df %>%
     )
   )
 
-# -----VERIFICATION-----
+# ----- Verfify against Adil -----
 # Expected: 0: No=1924, Yes=168 / 1: No=894, Yes=43
 cat("Composite by GLP1:\n")
 print(table(df$composite, df$GLP1_use, useNA = "always"))

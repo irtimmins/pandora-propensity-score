@@ -1,19 +1,19 @@
 # =============================================
-# Table 3 - Lab findings
+# 13 - Table 3, Lab findings
 # Continuous: median (IQR) by GLP-1 status
 # Kruskal-Wallis tests
 # =============================================
 
 # -----SUMMARY TABLE-----
-blood_vars <- c("wcc_adm", "crp", "urea_adm",
+lab_vars <- c("wcc_adm", "crp", "urea_adm",
                 "glucose_adm", "bili_adm",
                 "lactate_adm", "ews_adm")
 
 # Check which exist
-blood_vars <- blood_vars[blood_vars %in% names(df)]
+lab_vars <- lab_vars[lab_vars %in% names(df)]
 
 # Median (IQR) by GLP-1 group
-summarise_blood <- function(var, data) {
+summarise_lab_results <- function(var, data) {
   
   overall <- data[[var]]
   glp1    <- data[[var]][data$GLP1_use == "Yes"]
@@ -48,13 +48,13 @@ summarise_blood <- function(var, data) {
   )
 }
 
-results_bloods <- do.call(rbind,
-                          lapply(blood_vars, summarise_blood, data = df))
+results_labs <- do.call(rbind,
+                          lapply(lab_vars, summarise_lab_results, data = df))
 
-results_bloods
-cat("\n-----Admission bloods: median (IQR)-----\n")
-print(results_bloods, row.names = FALSE)
+results_labs
+cat("\n-----Lab results: median (IQR)-----\n")
+print(results_labs, row.names = FALSE)
 
-write.csv(print(results_bloods, smd = TRUE,
+write.csv(print(results_labs, smd = TRUE,
                 printToggle = FALSE, noSpaces = TRUE),
-          "Results/table1_matched_mi.csv")
+          "Results/table_3_lab_findings.csv")

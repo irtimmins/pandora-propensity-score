@@ -1,5 +1,5 @@
 # =============================================
-# 02 - Prepare data frame (tibble)
+# 02 - Prepare analysis cohort data frame (tibble)
 # Read, exclusions, derive covariates
 # Run 01_setup.R first
 # =============================================

@@ -1,8 +1,9 @@
 # =============================================
 # 07 - Doubly robust sensitivity analysis
-# use balancer weights approach
-# balancer::cluster_weights, pooled over MI
-# IPW-only and DR (with outcome regression)
+# use balancer weights approach as contrasting
+# method to propensity score matching.
+# pooled over multiple imputed datasets.
+# Save doubly robust version.
 # =============================================
 
 run_balancer_weights <- function(outcome_var, imp,

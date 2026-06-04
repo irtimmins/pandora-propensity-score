@@ -1,5 +1,5 @@
 # =============================================
-# 06 - FULL COHORT REGRESSION 
+# 06 - Full cohort regression
 # Multilevel logistic regression
 # Hospital random effect
 # Pooled across MI datasets via Rubin's rules

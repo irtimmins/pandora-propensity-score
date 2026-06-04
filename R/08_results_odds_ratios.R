@@ -5,17 +5,17 @@
 # All based on multiple imputation
 # =============================================
 
-# -----LOAD RESULTS-----
+# -----Load results -----
 results_ps  <- readRDS("Results/propensity_score_OR_mi.rds")
 results_reg <- readRDS("Results/standard_regression_OR_mi.rds")
 results_dr  <- readRDS("Results/doubly_robust_OR_mi.rds")
 
-# -----OUTCOMES TO REPORT-----
+# -----Outomces -----
 outcomes <- c("composite", "severity_bin",
               "mort90", "local_complication",
               "critical_care_adm_bin")
 
-# -----BUILD COMPARISON TABLE-----
+# ----------
 # Helper to extract OR and p by outcome
 extract <- function(results_df, outcome_vec,
                     or_col = "OR", p_col = "p") {
@@ -46,7 +46,7 @@ comparison_full <- data.frame(
   dr_p  = dr$p
 )
 
-# -----PRINT-----
+# ----- Print to console -----
 cat("\n=============================================\n")
 cat("Convergence across methods (all MI-based)\n")
 cat("=============================================\n\n")
@@ -65,7 +65,7 @@ cat("  dr      = Doubly robust, Balancing weights + regression (sensitivity 3)\n
 
 print(comparison_full, row.names = FALSE)
 
-# -----COMPOSITE CONVERGENCE SUMMARY-----
+# ----- Composite outcome -----
 cat("\n-----Composite outcome OR across methods-----\n")
 
 composite_row <- comparison_full %>%
@@ -81,7 +81,7 @@ cat(sprintf("  Doubly robust:           OR %.3f  p=%.3f\n",
             composite_row$dr_OR,
             composite_row$dr_p))
 
-# -----SAVE-----
+# -----Save-----
 write.csv(comparison_full,
           "Results/all_methods_OR.csv",
           row.names = FALSE)

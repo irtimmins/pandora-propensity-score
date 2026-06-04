@@ -1,5 +1,5 @@
 # =============================================
-# 19 - ORGAN FAILURE COMPONENTS
+# 14 - Table 4, pancreatitus severity
 # Individual resp/cvs/renal failure + critical care
 # =============================================
 
@@ -79,5 +79,5 @@ tab_severity <- print(tab_of,
                     noSpaces      = TRUE)
 
 write.csv(tab_of_mat,
-          "Results/table4_severity.csv")
+          "Results/table_4_severity.csv")
 

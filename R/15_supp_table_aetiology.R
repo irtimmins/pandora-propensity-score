@@ -1,9 +1,11 @@
 # =============================================
-# 16 - AETIOLOGY TABLE
+# 14 - Supplementary Aetiology table.
 # Cause of pancreatitis by GLP-1 status
+# If errors: rerun 02 and 03 scripts to recreate
+# df tibble.
 # =============================================
 
-df <- df %>%
+df_aet <- df %>%
   mutate(
     # If not on GLP-1 but GLP-1 listed as cause
     # -- recode as not GLP-1 cause
@@ -70,21 +72,21 @@ aetiology_vars <- c("cause_gallstones", "cause_alcohol",
 tab_aetiology <- CreateTableOne(
   vars       = aetiology_vars,
   strata     = "GLP1_use",
-  data       = df,
+  data       = df_aet,
   factorVars = aetiology_vars,
   addOverall = TRUE
 )
 
 cat("\n-----Aetiology of pancreatitis-----\n")
 cat("Note: patients may have >1 aetiology\n\n")
-print(tab_aetiology, showAllLevels = FALSE)
+print(tab_aetiology, showAllLevels = FALSE, test = FALSE)
 
 write.csv(
   print(tab_aetiology,
         showAllLevels = FALSE,
         printToggle   = FALSE,
         noSpaces      = TRUE),
-  "table_aetiology.csv"
+  "Results/supp_table_aetiology.csv"
 )
 
-cat("\nSaved table_aetiology.csv\n")
+cat("\nSaved supp_table_aetiology.csv\n")
