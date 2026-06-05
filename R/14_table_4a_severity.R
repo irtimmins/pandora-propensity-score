@@ -1,5 +1,5 @@
 # =============================================
-# 14 - Table 4, pancreatitus severity
+# 14a - Table 4a, pancreatitus severity
 # Individual resp/cvs/renal failure + critical care
 # =============================================
 
@@ -454,7 +454,7 @@ setColWidths(wb, "Table 4",
 freezePane(wb, "Table 4", firstActiveRow = 3)
 
 saveWorkbook(wb,
-             "Results/table_4_severity.xlsx",
+             "Results/table_4a_severity.xlsx",
              overwrite = TRUE)
 
-cat("\nSaved Results/table_4_severity.xlsx\n")
+cat("\nSaved Results/table_4a_severity.xlsx\n")

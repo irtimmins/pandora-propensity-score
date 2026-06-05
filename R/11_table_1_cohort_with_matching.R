@@ -4,12 +4,14 @@
 # matched cohort (MI dataset 1) side by side
 # =============================================
 
-# Variables to include in table
+library(tableone)
+library(tidyverse)
+library(openxlsx)
+
 tab1_vars <- c("age_cat", "gender", "bmi_cat", "cci_cat",
                "smoking_cat", "alcohol_cat2",
                "prev_pancreatitis", "gallstones_imaging")
 
-# Helper: convert binary outcome variables to labelled factors
 factor_outcomes <- function(d) {
   d %>% mutate(
     across(c(composite, severity_bin, mort90, readm90,
@@ -27,7 +29,8 @@ df_recode <- df %>%
     severity_bin          = as.integer(severity_bin),
     critical_care_adm_bin = as.integer(
       critical_care_adm_bin),
-    local_complication    = as.integer(local_complication),
+    local_complication    = as.integer(
+      local_complication),
     mort90                = as.integer(mort90),
     readm90               = as.integer(readm90),
     smoking_cat  = factor(smoking,
@@ -36,9 +39,9 @@ df_recode <- df %>%
     alcohol_cat2 = factor(alcohol_cat,
                           levels = c("None", "1-14", "15-35", ">35")),
     bmi_cat      = fct_na_value_to_level(
-      bmi_cat, level = "Missing"),
+      bmi_cat,      level = "Missing"),
     smoking_cat  = fct_na_value_to_level(
-      smoking_cat, level = "Missing"),
+      smoking_cat,  level = "Missing"),
     alcohol_cat2 = fct_na_value_to_level(
       alcohol_cat2, level = "Missing")
   ) %>%
@@ -52,7 +55,7 @@ tab_unmatched <- CreateTableOne(
   addOverall = TRUE
 )
 
-# Prepare matched cohort (imputed dataset 1)
+# Matched cohort (imputed dataset 1)
 # Underweight excluded, no missing after imputation
 tab_matched_mi <- CreateTableOne(
   vars       = tab1_vars,
@@ -60,8 +63,6 @@ tab_matched_mi <- CreateTableOne(
   data       = matched_list[[1]] %>%
     haven::zap_labels() %>%
     mutate(
-      # Explicitly convert to integer first
-      # to ensure factor() works correctly
       composite             = as.integer(composite),
       severity_bin          = as.integer(severity_bin),
       critical_care_adm_bin = as.integer(
@@ -87,25 +88,23 @@ tab_matched_mi <- CreateTableOne(
   addOverall = TRUE
 )
 
-
-# Extract character matrices from tableone objects
+# Extract character matrices
 mat_unmatched <- print(tab_unmatched,
                        smd           = FALSE,
-                       test          = FALSE,
+                       test          = TRUE,
                        showAllLevels = TRUE,
                        printToggle   = FALSE,
                        noSpaces      = TRUE)
 
 mat_matched <- print(tab_matched_mi,
                      smd           = FALSE,
-                     test          = FALSE,
+                     test          = TRUE,
                      showAllLevels = TRUE,
                      printToggle   = FALSE,
                      noSpaces      = TRUE)
 
-# tableone puts variable names only on the first level row
-# and leaves subsequent rows blank. Tag each variable header
-# so we can split them into a separate blank header row later.
+# Tag variable headers so we can split them into
+# a separate blank header row and a level row
 add_level_rownames <- function(mat) {
   rn          <- rownames(mat)
   current_var <- ""
@@ -124,12 +123,6 @@ add_level_rownames <- function(mat) {
   mat
 }
 
-mat_un <- add_level_rownames(mat_unmatched)
-mat_mi <- add_level_rownames(mat_matched)
-
-# Split each header+first-level row into two separate rows:
-# one blank header row and one populated first-level row.
-# This ensures all categories appear on their own line.
 insert_first_levels <- function(mat) {
   out_rows <- list()
   i <- 1
@@ -138,17 +131,12 @@ insert_first_levels <- function(mat) {
     if (startsWith(rn, "HEADER__")) {
       var_name  <- sub("HEADER__", "", rn)
       first_lev <- trimws(mat[i, 1])
-      
-      # Blank header row
       header_row           <- mat[i, , drop = FALSE]
       header_row[1, ]      <- ""
       rownames(header_row) <- var_name
-      
-      # First level row with data intact
       level_row            <- mat[i, , drop = FALSE]
       rownames(level_row)  <- paste0(var_name,
                                      "__", first_lev)
-      
       out_rows[[length(out_rows) + 1]] <- header_row
       out_rows[[length(out_rows) + 1]] <- level_row
     } else {
@@ -160,12 +148,13 @@ insert_first_levels <- function(mat) {
   do.call(rbind, out_rows)
 }
 
-mat_un <- insert_first_levels(mat_un)
-mat_mi <- insert_first_levels(mat_mi)
+mat_un <- insert_first_levels(
+  add_level_rownames(mat_unmatched))
+mat_mi <- insert_first_levels(
+  add_level_rownames(mat_matched))
 
-# Align rows across both tables. The full cohort has extra
-# rows for missing categories and underweight that the
-# matched cohort does not -- these are preserved in order.
+# Align rows -- full cohort has extra rows for
+# missing and underweight not in matched cohort
 row_order <- c(
   rownames(mat_un),
   setdiff(rownames(mat_mi), rownames(mat_un))
@@ -190,22 +179,31 @@ mat_mi_aligned <- align_mat(mat_mi, row_order,
 
 combined <- cbind(mat_un_aligned, mat_mi_aligned)
 
-# Fill missing and underweight rows in the matched cohort
-# with zeros -- missing is resolved by imputation, and
-# underweight patients are excluded from the PS analysis
-missing_rows     <- grepl("Missing",     rownames(combined))
-underweight_rows <- grepl("Underweight", rownames(combined))
-matched_cols     <- grepl("^Matched_MI_", colnames(combined))
+# Remove test columns -- keep p columns only
+combined <- combined[,
+                     !grepl("_test$", colnames(combined)),
+                     drop = FALSE]
+
+# Fill missing and underweight rows in matched cohort
+# with zeros -- but NOT in p-value columns
+missing_rows     <- grepl("Missing",
+                          rownames(combined))
+underweight_rows <- grepl("Underweight",
+                          rownames(combined))
+
+# Exclude p columns from zero-filling
+fill_cols <- grepl("^Matched_MI_", colnames(combined)) &
+  !grepl("_p$", colnames(combined))
 
 for (r in which(missing_rows | underweight_rows)) {
-  for (c in which(matched_cols)) {
+  for (c in which(fill_cols)) {
     if (combined[r, c] == "") {
       combined[r, c] <- "0 (0.0)"
     }
   }
 }
 
-# Tidy up column names
+# Tidy column names
 combined <- combined[,
                      !colnames(combined) %in% "Matched_MI_level",
                      drop = FALSE]
@@ -218,13 +216,12 @@ combined <- combined[,
                      !colnames(combined) %in% "level",
                      drop = FALSE]
 
-# Clean row names before applying display labels
+# Clean rownames before display labels
 rownames(combined) <- gsub("__", " -- ",
                            rownames(combined))
 rownames(combined) <- gsub(" \\(%\\) -- ", " -- ",
                            rownames(combined))
 
-# Display labels for each row
 var_labels <- c(
   "n"                                          = "N",
   "age_cat (%)"                                = "Age (years)",
@@ -264,48 +261,23 @@ var_labels <- c(
   "prev_pancreatitis -- Yes"                   = "Yes",
   "gallstones_imaging (%)"                     = "Gallstones on prior or index admission imaging",
   "gallstones_imaging -- No"                   = "No",
-  "gallstones_imaging -- Yes"                  = "Yes",
-  "composite (%)"                              = "Composite outcome",
-  "composite -- No"                            = "No",
-  "composite -- Yes"                           = "Yes",
-  "severity_bin (%)"                           = "Severe pancreatitis",
-  "severity_bin -- No"                         = "Mild/Moderate",
-  "severity_bin -- Yes"                        = "Severe",
-  "mort90 (%)"                                 = "90-day mortality",
-  "mort90 -- No"                               = "No",
-  "mort90 -- Yes"                              = "Yes",
-  "readm90 (%)"                                = "90-day readmission",
-  "readm90 -- No"                              = "No",
-  "readm90 -- Yes"                             = "Yes",
-  "critical_care_adm_bin (%)"                  = "Critical care admission",
-  "critical_care_adm_bin -- No"                = "No",
-  "critical_care_adm_bin -- Yes"               = "Yes",
-  "local_complication (%)"                     = "Local complication",
-  "local_complication -- No"                   = "No",
-  "local_complication -- Yes"                  = "Yes"
+  "gallstones_imaging -- Yes"                  = "Yes"
 )
 
-# Identify header vs level rows before relabelling
 is_header <- rownames(combined) %in%
-  c("n", names(var_labels)[!grepl(" -- ",
-                                  names(var_labels))])
-is_level  <- grepl(" -- ", rownames(combined))
+  c("n", names(var_labels)[
+    !grepl(" -- ", names(var_labels))])
 
-# Apply display labels, keeping original name if not found
 current_rn     <- rownames(combined)
 new_rn         <- var_labels[current_rn]
 missing_labels <- is.na(new_rn)
 new_rn[missing_labels] <- current_rn[missing_labels]
 rownames(combined) <- new_rn
 
-# Recompute is_header after relabelling
 is_header <- rownames(combined) %in%
   var_labels[!grepl(" -- ", names(var_labels))]
 is_header[rownames(combined) == "N"] <- TRUE
 
-# Build Variable and Level columns for easy formatting
-# in Word or Excel -- variable name on header rows,
-# category label on level rows
 variable_col <- character(nrow(combined))
 level_col    <- character(nrow(combined))
 
@@ -329,8 +301,7 @@ combined_final <- cbind(
   combined
 )
 
-# Restore sample size counts to the N row
-# (header rows were blanked earlier)
+# Restore N row counts
 n_row <- which(combined_final[, "Variable"] == "N")
 
 if (length(n_row) > 0) {
@@ -353,8 +324,7 @@ if (length(n_row) > 0) {
   }
 }
 
-# Remove the duplicate "n -- " row that tableone generates
-# leaving only the single clean N row with counts
+# Remove duplicate n row from tableone
 n_header_row <- which(combined_final[, "Variable"] == "N")
 n_data_row   <- which(combined_final[, "Level"] == "n -- ")
 
@@ -366,7 +336,7 @@ if (length(n_header_row) > 0 &
                                    drop = FALSE]
 }
 
-# Add comma separators to counts >= 1000
+# Comma formatting for counts >= 1000
 format_cell_commas <- function(cell) {
   matches <- gregexpr("[0-9]{4,}", cell)
   nums    <- regmatches(cell, matches)[[1]]
@@ -380,51 +350,59 @@ format_cell_commas <- function(cell) {
   cell
 }
 
-# Add % symbol to all percentage values
-# Matches pattern: number (space) number.number
-# e.g. "600 (19.8)" becomes "600 (19.8%)"
-
+# Add % symbol to percentage values
 add_percent_symbol <- function(cell) {
-  # Match opening bracket, number, closing bracket
-  # but not cells that are already "0 (0.0)" with %
-  # or plain counts like "3029"
-  gsub(
-    "\\(([0-9]+\\.[0-9]+)\\)",
-    "(\\1%)",
-    cell
-  )
+  gsub("\\(([0-9]+\\.[0-9]+)\\)",
+       "(\\1%)", cell)
 }
 
 combined_fmt <- apply(combined_final, c(1, 2),
                       format_cell_commas)
-
-# Add % symbol to percentage values
-combined_fmt <- apply(combined_fmt, c(1, 2),
+combined_fmt <- apply(combined_fmt,   c(1, 2),
                       add_percent_symbol)
+
+# Format p-value columns
+# Skip cells containing brackets (count data not p-values)
+fmt_p_cell <- function(cell) {
+  if (grepl("\\(", cell)) return(cell)
+  if (cell == "" | is.na(cell)) return(cell)
+  p <- suppressWarnings(as.numeric(cell))
+  if (is.na(p))   return(cell)
+  if (p < 0.001)  return("<0.001")
+  if (p > 0.999)  return(">0.999")
+  formatC(p, format = "f", digits = 3)
+}
+
+p_col_names <- colnames(combined_fmt)[
+  grepl("^p$|^Full_cohort_p$|^Matched_p$|_p$",
+        colnames(combined_fmt)) &
+    !grepl("Overall|No|Yes|level|Variable|Level",
+           colnames(combined_fmt))]
+
+cat("P-value columns:\n")
+print(p_col_names)
+
+for (col in p_col_names) {
+  combined_fmt[, col] <- sapply(
+    combined_fmt[, col], fmt_p_cell)
+}
 
 rownames(combined_fmt) <- NULL
 
 cat("\nTable 1\n")
 print(combined_fmt)
 
-# library(openxlsx)
-
-# Add spanning header rows above the data
-# Row 1: group labels spanning the columns
-# Row 2: subgroup labels (Overall, No, Yes)
-
-library(openxlsx)
-
+# -----EXPORT TO EXCEL-----
 df_out <- as.data.frame(combined_fmt,
                         stringsAsFactors = FALSE)
 
 wb <- createWorkbook()
 addWorksheet(wb, "Table 1")
 
-# Work out column positions
-# Columns 1-2 are Variable and Level
-# Then Full cohort: Overall, No, Yes (3 cols)
-# Then Matched:     Overall, No, Yes (3 cols)
+# Column positions
+# 1-2:   Variable, Level
+# 3-6:   Full cohort (Overall, No, Yes, p)
+# 7-10:  Matched cohort (Overall, No, Yes, p)
 n_data_cols    <- ncol(df_out) - 2
 full_coh_start <- 3
 full_coh_end   <- full_coh_start +
@@ -432,56 +410,43 @@ full_coh_end   <- full_coh_start +
 matched_start  <- full_coh_end + 1
 matched_end    <- ncol(df_out)
 
-# Spanning header styles
 style_span <- createStyle(
-  halign      = "center",
-  valign      = "center",
+  halign         = "center",
+  valign         = "center",
   textDecoration = "bold",
-  border      = "Bottom"
+  border         = "Bottom"
 )
 style_subheader <- createStyle(
-  halign      = "center",
+  halign         = "center",
   textDecoration = "bold"
 )
 style_text <- createStyle(numFmt = "TEXT")
 
-# Write spanning header row 1 (row 1 in sheet)
+# Spanning header row
 writeData(wb, "Table 1",
-          x         = "",
-          startRow  = 1,
-          startCol  = 1)
-
-writeData(wb, "Table 1",
-          x         = "Full cohort",
-          startRow  = 1,
-          startCol  = full_coh_start)
-
-writeData(wb, "Table 1",
-          x         = "Propensity-score matched cohort",
-          startRow  = 1,
-          startCol  = matched_start)
-
-# Merge cells for spanning headers
+          x = "Full cohort",
+          startRow = 1, startCol = full_coh_start)
 mergeCells(wb, "Table 1",
            cols = full_coh_start:full_coh_end,
            rows = 1)
+
+writeData(wb, "Table 1",
+          x = "Propensity-score matched cohort",
+          startRow = 1, startCol = matched_start)
 mergeCells(wb, "Table 1",
            cols = matched_start:matched_end,
            rows = 1)
 
-# Apply spanning header style
 addStyle(wb, "Table 1",
          style      = style_span,
          rows       = 1,
          cols       = full_coh_start:matched_end,
          gridExpand = TRUE)
 
-# Write subheader row 2 (Overall, No, Yes labels)
+# Subheader row
 subheaders <- colnames(df_out)
-# Clean up prefixes for display
 subheaders <- gsub("Full_cohort_|Matched_", "",
                    subheaders)
-# Variable and Level columns
 subheaders[1] <- "Variable"
 subheaders[2] <- "Level"
 
@@ -491,33 +456,29 @@ for (j in seq_along(subheaders)) {
             startRow = 2,
             startCol = j)
 }
-
 addStyle(wb, "Table 1",
          style      = style_subheader,
          rows       = 2,
          cols       = 1:ncol(df_out),
          gridExpand = TRUE)
 
-# Write data starting at row 3
+# Data
 writeData(wb, "Table 1",
-          x         = df_out,
-          startRow  = 3,
-          startCol  = 1,
-          colNames  = FALSE)
+          x        = df_out,
+          startRow = 3,
+          startCol = 1,
+          colNames = FALSE)
 
-# Force all data cells to text
 addStyle(wb, "Table 1",
          style      = style_text,
          rows       = 3:(nrow(df_out) + 3),
          cols       = 1:ncol(df_out),
          gridExpand = TRUE)
 
-# Auto width columns
 setColWidths(wb, "Table 1",
              cols   = 1:ncol(df_out),
              widths = "auto")
 
-# Freeze panes below headers
 freezePane(wb, "Table 1",
            firstActiveRow = 3)
 
@@ -526,7 +487,3 @@ saveWorkbook(wb,
              overwrite = TRUE)
 
 cat("\nSaved Results/table_1_all_cohorts.xlsx\n")
-cat("Spanning headers: Full cohort | ",
-    "Propensity-score matched cohort\n")
-
-
