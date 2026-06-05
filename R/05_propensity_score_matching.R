@@ -123,3 +123,132 @@ saveRDS(results_mi, "Results/propensity_score_OR_mi.rds")
 write.csv(results_mi, "Results/propensity_score_OR_mi.csv",
           row.names = FALSE)
 
+########################################################
+# Length of stay
+########################################################
+# Linear mixed effects pooled via Rubin's rules
+
+los_data <- df %>%
+  haven::zap_labels() %>%
+  dplyr::select(id, los)
+
+ests_los <- numeric(length(matched_list))
+vars_los <- numeric(length(matched_list))
+
+for (i in seq_along(matched_list)) {
+  
+  cat("LOS dataset", i, "... ")
+  
+  # Join LOS from original df -- do this first
+  # before any other operations
+  mdf_i <- matched_list[[i]] %>%
+    haven::zap_labels() %>%
+    dplyr::select(-any_of("los")) %>%
+    dplyr::left_join(los_data, by = "id") %>%
+    mutate(GLP1_use = factor(GLP1_use,
+                             levels = c("No", "Yes")))
+  
+  # Check LOS joined correctly
+  if (i == 1) {
+    cat("\nLOS present:", "los" %in% names(mdf_i),
+        "non-missing:", sum(!is.na(mdf_i$los)), "\n")
+  }
+  
+  fit_i <- tryCatch({
+    lmer(los ~ GLP1_use + (1 | hospital),
+         data    = mdf_i,
+         REML    = TRUE,
+         control = lmerControl(
+           optimizer = "bobyqa"))
+  }, error = function(e) {
+    cat("lmer failed:", conditionMessage(e), "\n")
+    cat("trying lm ... ")
+    lm(los ~ GLP1_use,
+       data    = mdf_i,
+       weights = weights)
+  })
+  
+  co_i        <- summary(fit_i)$coefficients
+  ests_los[i] <- co_i["GLP1_useYes", "Estimate"]
+  vars_los[i] <- co_i["GLP1_useYes", "Std. Error"]^2
+  
+  cat("est =", round(ests_los[i], 2), "\n")
+}
+# Rubin's rules
+m_los     <- length(ests_los)
+qbar_los  <- mean(ests_los)
+ubar_los  <- mean(vars_los)
+b_los     <- var(ests_los)
+tvar_los  <- ubar_los + (1 + 1/m_los) * b_los
+se_los    <- sqrt(tvar_los)
+p_los     <- 2 * (1 - pnorm(abs(qbar_los / se_los)))
+
+cat("\nPooled LOS estimate:",
+    round(qbar_los, 2),
+    "SE:", round(se_los, 2),
+    "p:", round(p_los, 3), "\n")
+
+# Descriptive statistics -- use same join approach as loop
+mdf1_los <- matched_list[[1]] %>%
+  haven::zap_labels() %>%
+  dplyr::select(-any_of("los")) %>%
+  dplyr::left_join(los_data, by = "id")
+
+los_glp1 <- as.numeric(
+  mdf1_los$los[mdf1_los$GLP1_use == "Yes"])
+los_ctrl <- as.numeric(
+  mdf1_los$los[mdf1_los$GLP1_use == "No"])
+
+cat("LOS GLP-1 mean:", round(mean(los_glp1,
+                                  na.rm = TRUE), 2), "\n")
+cat("LOS Control mean:", round(mean(los_ctrl,
+                                    na.rm = TRUE), 2), "\n")
+los_glp1_desc <- paste0(
+  formatC(mean(los_glp1, na.rm = TRUE),
+          format = "f", digits = 1),
+  " (",
+  formatC(sd(los_glp1, na.rm = TRUE),
+          format = "f", digits = 1),
+  ")")
+
+los_ctrl_desc <- paste0(
+  formatC(mean(los_ctrl, na.rm = TRUE),
+          format = "f", digits = 1),
+  " (",
+  formatC(sd(los_ctrl, na.rm = TRUE),
+          format = "f", digits = 1),
+  ")")
+
+los_row <- data.frame(
+  Outcome   = "Total length of stay (days)",
+  GLP1_n    = los_glp1_desc,
+  Ctrl_n    = los_ctrl_desc,
+  Statistic = paste0(
+    formatC(qbar_los,
+            format = "f", digits = 1),
+    " (",
+    formatC(qbar_los - 1.96 * se_los,
+            format = "f", digits = 1),
+    " to ",
+    formatC(qbar_los + 1.96 * se_los,
+            format = "f", digits = 1),
+    ")"),
+  p         = fmt_p(p_los),
+  stringsAsFactors = FALSE
+)
+
+#los_row
+# Save pooled LOS result
+saveRDS(
+  data.frame(
+    outcome  = "los",
+    method   = "MI PS matching (lmer)",
+    estimate = round(qbar_los, 3),
+    lower    = round(qbar_los - 1.96 * se_los, 3),
+    upper    = round(qbar_los + 1.96 * se_los, 3),
+    p        = round(p_los, 3)
+  ),
+  "Results/los_mi.rds"
+)
+
+cat("\nLOS result saved\n")

@@ -7,10 +7,7 @@
 # Variables to include in table
 tab1_vars <- c("age_cat", "gender", "bmi_cat", "cci_cat",
                "smoking_cat", "alcohol_cat2",
-               "prev_pancreatitis", "gallstones_imaging",
-               "composite", "severity_bin", "mort90",
-               "readm90", "critical_care_adm_bin",
-               "local_complication")
+               "prev_pancreatitis", "gallstones_imaging")
 
 # Helper: convert binary outcome variables to labelled factors
 factor_outcomes <- function(d) {
@@ -531,3 +528,5 @@ saveWorkbook(wb,
 cat("\nSaved Results/table_1_all_cohorts.xlsx\n")
 cat("Spanning headers: Full cohort | ",
     "Propensity-score matched cohort\n")
+
+

@@ -1,5 +1,5 @@
 # =============================================
-# 14 - Supplementary Aetiology table.
+# 17 - Supplementary Aetiology table.
 # Cause of pancreatitis by GLP-1 status
 # If errors: rerun 02 and 03 scripts to recreate
 # df tibble.

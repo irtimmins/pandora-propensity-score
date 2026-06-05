@@ -84,3 +84,4 @@ plot(imp, c("bmi_cat", "smoking", "alcohol_cat", "crp"))
 saveRDS(imp, "Data/pandora_imp.rds")
 cat("\nSaved pandora_imp.rds\n")
 
+#imp <- readRDS("Data/pandora_imp.rds")
