@@ -17,6 +17,17 @@ results_los_reg <- readRDS(
 results_los_dr  <- readRDS(
   "Results/los_doubly_robust_mi.rds")
 
+# Format p-values consistently:
+# <0.001 for very small values
+# 2 significant figures otherwise
+fmt_p <- function(p) {
+  if (is.na(p))  return(NA_character_)
+  if (p < 0.001) return("<0.001")
+  # 2 significant figures, trailing zeros kept
+  # e.g. 0.0013, 0.076, 0.080
+  formatC(p, format = "g", digits = 2, flag = "#")
+}
+
 # Event counts from full cohort
 get_events_full <- function(outcome_var) {
   out     <- as.integer(df[[outcome_var]])

@@ -40,6 +40,19 @@ get_or <- function(fit, cluster_var) {
   )
 }
 
+# Format OR and CI to 2 decimal places
+fmt_or <- function(or, lower, upper) {
+  paste0(
+    formatC(as.numeric(or),    format = "f", digits = 2),
+    " (",
+    formatC(as.numeric(lower), format = "f", digits = 2),
+    " to ",
+    formatC(as.numeric(upper), format = "f", digits = 2),
+    ")"
+  )
+}
+
+
 # -----Helper: RUBIN'S RULES POOLING-----
 # For quasibinomial + clustered SEs which
 # mice::pool does not handle

@@ -261,25 +261,35 @@ for (i in 1:imp$m) {
   cat("est =", round(ests_dr_los[i], 1), "\n")
 }
 
-dr_los_pooled <- pool_rubin(
-  ests_dr_los, vars_dr_los,
-  "los",
-  "Balancing weights + regression (DR)")
+# Pool LOS DR via Rubin's rules directly
+# Do NOT use pool_rubin -- that exponentiates
+# which is wrong for continuous outcomes
+m_dr      <- length(ests_dr_los)
+qbar_dr   <- mean(ests_dr_los)
+ubar_dr   <- mean(vars_dr_los)
+b_dr      <- var(ests_dr_los)
+tvar_dr   <- ubar_dr + (1 + 1/m_dr) * b_dr
+se_dr     <- sqrt(tvar_dr)
+p_dr      <- 2 * (1 - pnorm(abs(qbar_dr / se_dr)))
 
-cat("\nDR LOS result:\n")
-print(dr_los_pooled)
+cat("\nDR LOS pooled result:\n")
+cat("Mean difference:", round(qbar_dr, 2), "\n")
+cat("SE:", round(se_dr, 2), "\n")
+cat("95% CI:",
+    round(qbar_dr - 1.96 * se_dr, 2), "to",
+    round(qbar_dr + 1.96 * se_dr, 2), "\n")
+cat("p:", round(p_dr, 3), "\n")
 
 results_los_dr <- data.frame(
   outcome  = "los",
   method   = "Balancing weights + regression (DR)",
-  estimate = round(dr_los_pooled$OR, 3),
-  lower    = round(dr_los_pooled$lower, 3),
-  upper    = round(dr_los_pooled$upper, 3),
-  p        = round(dr_los_pooled$p, 3)
+  estimate = round(qbar_dr, 2),
+  lower    = round(qbar_dr - 1.96 * se_dr, 2),
+  upper    = round(qbar_dr + 1.96 * se_dr, 2),
+  p        = round(p_dr, 3)
 )
 
 saveRDS(results_los_dr,
         "Results/los_doubly_robust_mi.rds")
 
-cat("\nSaved Results/doubly_robust_OR_mi.rds\n")
-cat("Saved Results/los_doubly_robust_mi.rds\n")
+cat("\nSaved Results/los_doubly_robust_mi.rds\n")
