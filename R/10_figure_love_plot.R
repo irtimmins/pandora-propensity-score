@@ -16,6 +16,7 @@ love.plot(
   title        = NULL,
   sample.names = c("Unmatched", "Matched")
 )
-ggsave("Results/propensity_score_loveplot_imp1.png", width = 8, height = 7, dpi = 300)
+#?love.plot
+ggsave("Results/propensity_score_loveplot_imp1.jpg", width = 6, height = 4, dpi = 300)
 
 cat("Love plots saved\n")
