@@ -3,7 +3,6 @@
 # Packages, helper functions
 # =============================================
 
-
 library(haven)
 library(tidyverse)
 library(MatchIt)
@@ -17,6 +16,9 @@ library(balancer)
 library(lme4)
 library(forcats)
 library(openxlsx)
+library(MatchThem)
+library(mice)
+library(broom.mixed)
 
 # Helper functions used in multiple scripts:
 

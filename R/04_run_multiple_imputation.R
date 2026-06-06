@@ -1,15 +1,15 @@
 # =============================================
-# 04 - Perform multiple imputation
-# m=20
+# 04 - Multiple imputation
+# m = 20, predictive mean matching for continuous
+# variables and proportional odds for ordered
+# categoricals
 # =============================================
 
-# Core variables for covariate adjustment
 ps_vars <- c("GLP1_use", "gender", "age_cat",
              "bmi_cat", "cci_cat", "smoking",
              "alcohol_cat", "prev_pancreatitis",
              "gallstones_imaging")
 
-# Include further (auxiliary) variables to improve imputation model
 aux_vars <- c("crp", "los", "diabetes",
               "resp_failure", "cvs_failure",
               "renal_failure", "referral")
@@ -19,69 +19,48 @@ outcome_vars <- c("composite", "severity_bin", "mort90",
                   "local_complication", "hospital")
 
 df_mice <- df %>%
-  dplyr::select(id,
-                all_of(ps_vars),
+  dplyr::select(id, all_of(ps_vars),
                 all_of(aux_vars),
-                all_of(outcome_vars)) %>%
-  haven::zap_labels()    %>%
-# Ensure bmi_cat has correct levels including underweight
-  mutate(
-  bmi_cat = factor(bmi_cat,
-                   levels = c("<18.5 Underweight",
-                              "18.5-24.9 Normal",
-                              "25-29.9 Overweight",
-                              "30-34.9 Class 1 Obesity",
-                              "35-39.9 Class 2 Obesity",
-                              ">40 Class 3 Obesity"))
-)
+                all_of(outcome_vars))
 
 cat("Missing per variable:\n")
 print(sapply(df_mice, function(x) sum(is.na(x))))
 
-# ----- Imputation methods -----
-# Clean method assignment -- only variables with missing data
+# Only variables have missing data and need a
+# method, pmm is the default. 
+# mice leaves complete variables untouched.
+# change to polr method for ordered categoricals.
 imp_methods <- make.method(df_mice)
-
 imp_methods["bmi_cat"]     <- "polr"
 imp_methods["smoking"]     <- "polr"
 imp_methods["alcohol_cat"] <- "polr"
-imp_methods["crp"]         <- "pmm"
-imp_methods["los"]         <- "pmm"
 
-# Confirm nothing else assigned
-cat("Imputation methods assigned:\n")
-print(imp_methods[imp_methods != ""])
+# id and hospital are kept in the data so they carry
+# through to the matched datasets, but neither should
+# drive the imputation: id is just a row label, and
+# hospital (103 levels) destabilises the per-variable
+# models. quickpred with these excluded handles this
+# in one step.
+pred <- quickpred(df_mice, exclude = c("id", "hospital"))
 
-# ----- Predictor matrix -----
-ini  <- mice(df_mice, maxit = 0, printFlag = FALSE)
-pred <- ini$predictorMatrix
-pred[, "id"]       <- 0
-pred["id", ]       <- 0
-pred["hospital", ] <- 0
+# Underweight patients violate positivity (no
+# underweight GLP-1 users) so they are excluded from
+# the propensity analysis. ignore = TRUE imputes them
+# but leaves them out of the imputation models, so all
+# datasets keep identical row counts.
+ignore_vec <- df_mice$bmi_cat == "<18.5 Underweight" &
+  !is.na(df_mice$bmi_cat)
 
-# ----- Run using mice -----
+cat("Underweight patients removed:", sum(ignore_vec), "\n")
+
 set.seed(12510)
-imp <- mice(
-  df_mice,
-  m               = 20,
-  method          = imp_methods,
-  predictorMatrix = pred,
-  maxit           = 20,
-  printFlag       = TRUE
-)
+imp <- mice(df_mice,
+            m               = 3,
+            method          = imp_methods,
+            predictorMatrix = pred,
+            maxit           = 5,
+            ignore          = ignore_vec,
+            printFlag       = TRUE)
 
-# -----Check it's worked -----
-cat("\nLogged events:", nrow(imp$loggedEvents), "\n")
-
-cat("\nObserved BMI:\n")
-print(table(df_mice$bmi_cat, useNA = "always"))
-cat("Imputed BMI dataset 1:\n")
-print(table(mice::complete(imp, 1)$bmi_cat))
-
-plot(imp, c("bmi_cat", "smoking", "alcohol_cat", "crp"))
-
-# -----Save imputed datasets -----
 saveRDS(imp, "Data/pandora_imp.rds")
-cat("\nSaved pandora_imp.rds\n")
-
-#imp <- readRDS("Data/pandora_imp.rds")
+cat("Saved pandora_imp.rds\n")

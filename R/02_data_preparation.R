@@ -9,6 +9,9 @@ data_file_location <-"Data/pandora_clean.dta"
 
 df <- read_dta(data_file_location)
 
+df <- df %>%
+  haven::zap_labels()
+
 # -----EXCLUSIONS-----
 df <- df %>%
   mutate(GLP1_use = na_if(GLP1_use, 99)) %>%
@@ -66,8 +69,9 @@ df <- df %>%
                                 "25-29.9 Overweight",
                                 "30-34.9 Class 1 Obesity",
                                 "35-39.9 Class 2 Obesity",
-                                ">40 Class 3 Obesity"))
-  )
+                                ">40 Class 3 Obesity")),
+    bmi_cat = relevel(bmi_cat, ref = "18.5-24.9 Normal")
+  ) 
 
 # -----SMOKING-----
 df <- df %>%
