@@ -1,94 +1,102 @@
 # =============================================
-# 14a - Table 4a, pancreatitus severity
-# Individual resp/cvs/renal failure + critical care
+# 14 - Table 4: Pancreatitis severity
+# Organ failure (respiratory, cardiovascular,
+# renal), critical care admission, local
+# complication, and severity classification.
+# Full cohort and matched cohort side by side.
 # =============================================
 
-# Read raw numeric values directly from saved clean data
-# before script 14 converted them to factors
-df_raw_sev <- readRDS("Data/pandora_clean_r.rds") %>%
-  haven::zap_labels() %>%
-  dplyr::select(id,
-                organ_failure_severe,
-                critical_care_adm_bin,
-                local_complication,
-                severity)
+df_raw_sev <- readRDS("Data/pandora_clean_r.rds") 
 
-cat("Raw check:\n")
-print(table(df_raw_sev$organ_failure_severe,
-            useNA = "always"))
-print(table(df_raw_sev$local_complication,
-            useNA = "always"))
-
+# Full cohort -- join GLP1_use from df since
+# df_raw_sev comes from the saved clean file
 sev_data <- df_raw_sev %>%
-  dplyr::left_join(
-    df %>%
-      haven::zap_labels() %>%
-      dplyr::select(id, GLP1_use),
-    by = "id"
-  ) %>%
   mutate(
+    resp_failure_bin  = factor(
+      as.integer(resp_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
+    cvs_failure_bin   = factor(
+      as.integer(cvs_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
+    renal_failure_bin = factor(
+      as.integer(renal_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
     organ_failure_severe = factor(
       as.integer(organ_failure_severe),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     critical_care_adm_bin = factor(
       as.integer(critical_care_adm_bin),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     local_complication = factor(
       as.integer(local_complication),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     severity_3 = factor(
       as.integer(severity),
       levels = 0:2,
       labels = c("Mild", "Moderate", "Severe")),
-    GLP1_use = factor(GLP1_use,
-                      levels = c("No", "Yes"))
-  )
+    GLP1_use = factor(as.character(GLP1_use),
+                      levels = c("No", "Yes")))
 
+# Matched cohort -- join all severity variables
+# from the raw file since they are not all carried
+# through the imputation and matching
 matched_sev <- matched_list[[1]] %>%
   haven::zap_labels() %>%
-  dplyr::select(-any_of(c("organ_failure_severe",
+  dplyr::select(-any_of(c("resp_failure_bin",
+                          "cvs_failure_bin",
+                          "renal_failure_bin",
+                          "organ_failure_severe",
                           "critical_care_adm_bin",
                           "local_complication",
                           "severity"))) %>%
   dplyr::left_join(
-    df_raw_sev,
-    by = "id"
-  ) %>%
+    df_raw_sev %>%
+      dplyr::select(id, resp_failure_bin,
+                    cvs_failure_bin,
+                    renal_failure_bin,
+                    organ_failure_severe,
+                    critical_care_adm_bin,
+                    local_complication,
+                    severity),
+    by = "id") %>%
   mutate(
+    resp_failure_bin  = factor(
+      as.integer(resp_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
+    cvs_failure_bin   = factor(
+      as.integer(cvs_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
+    renal_failure_bin = factor(
+      as.integer(renal_failure_bin),
+      levels = 0:1, labels = c("No", "Yes")),
     organ_failure_severe = factor(
       as.integer(organ_failure_severe),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     critical_care_adm_bin = factor(
       as.integer(critical_care_adm_bin),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     local_complication = factor(
       as.integer(local_complication),
-      levels = 0:1,
-      labels = c("No", "Yes")),
+      levels = 0:1, labels = c("No", "Yes")),
     severity_3 = factor(
       as.integer(severity),
       levels = 0:2,
       labels = c("Mild", "Moderate", "Severe")),
     GLP1_use = factor(GLP1_use,
-                      levels = c("No", "Yes"))
-  )
+                      levels = c("No", "Yes")))
 
-# Verify
-cat("\nFull cohort organ failure:\n")
-print(table(sev_data$organ_failure_severe,
+cat("Full cohort resp failure:\n")
+print(table(sev_data$resp_failure_bin,
             sev_data$GLP1_use, useNA = "always"))
-
 cat("\nMatched organ failure:\n")
 print(table(matched_sev$organ_failure_severe,
             matched_sev$GLP1_use, useNA = "always"))
 
-
-sev_vars <- c("organ_failure_severe",
+# All severity variables in clinical order
+sev_vars <- c("resp_failure_bin",
+              "cvs_failure_bin",
+              "renal_failure_bin",
+              "organ_failure_severe",
               "critical_care_adm_bin",
               "local_complication",
               "severity_3")
@@ -98,23 +106,19 @@ tab_sev_full <- CreateTableOne(
   strata     = "GLP1_use",
   data       = sev_data,
   factorVars = sev_vars,
-  addOverall = TRUE
-)
+  addOverall = TRUE)
 
 tab_sev_matched <- CreateTableOne(
   vars       = sev_vars,
   strata     = "GLP1_use",
   data       = matched_sev,
   factorVars = sev_vars,
-  addOverall = TRUE
-)
+  addOverall = TRUE)
 
 cat("Full cohort:\n")
 print(tab_sev_full, showAllLevels = TRUE)
-
 cat("\nMatched cohort:\n")
 print(tab_sev_matched, showAllLevels = TRUE)
-
 
 mat_full <- print(tab_sev_full,
                   showAllLevels = TRUE,
@@ -130,7 +134,6 @@ mat_matched <- print(tab_sev_matched,
                      printToggle   = FALSE,
                      noSpaces      = TRUE)
 
-# Add unique rownames and split header/level rows
 add_level_rownames <- function(mat) {
   rn          <- rownames(mat)
   current_var <- ""
@@ -179,52 +182,9 @@ mat_full    <- insert_first_levels(
 mat_matched <- insert_first_levels(
   add_level_rownames(mat_matched))
 
-
-
-# Directly restore N row from original matrices
-n_row <- which(combined_final[, "Variable"] == "N")
-
-if (length(n_row) > 0) {
-  # Get n row from each matrix
-  # mat_full and mat_matched still have "n" as rowname
-  # before insert_first_levels was applied
-  # Use the tableone print output directly
-  
-  full_n    <- as.character(mat_full["n", ])
-  matched_n <- as.character(mat_matched["n", ])
-  
-  # Match to correct columns
-  data_cols <- colnames(combined_final)[3:ncol(combined_final)]
-  
-  for (col in data_cols) {
-    # Full cohort columns
-    clean_col <- gsub("^Full_", "", col)
-    if (clean_col %in% names(full_n)) {
-      combined_final[n_row, col] <- full_n[clean_col]
-    }
-    # Matched columns
-    clean_col <- gsub("^Matched_", "", col)
-    if (clean_col %in% names(matched_n)) {
-      combined_final[n_row, col] <- matched_n[clean_col]
-    }
-  }
-}
-
-cat("N row after fix:\n")
-print(combined_final[n_row, ])
-
-
-
-
-
-
-
-
-# Align rows
 row_order <- c(
   rownames(mat_full),
-  setdiff(rownames(mat_matched), rownames(mat_full))
-)
+  setdiff(rownames(mat_matched), rownames(mat_full)))
 
 align_mat <- function(mat, row_order, suffix) {
   out <- matrix("",
@@ -241,56 +201,49 @@ align_mat <- function(mat, row_order, suffix) {
 mat_full_al    <- align_mat(mat_full,    row_order, "Full")
 mat_matched_al <- align_mat(mat_matched, row_order, "Matched")
 
-combined <- cbind(mat_full_al, mat_matched_al)
+combined <- base::cbind(mat_full_al, mat_matched_al)
 
-# Remove redundant level columns
+# Remove test and level columns
 combined <- combined[,
-                     !colnames(combined) %in%
+                     !grepl("_test$", colnames(combined)) &
+                       !colnames(combined) %in%
                        c("Full_level", "Matched_level"),
                      drop = FALSE]
-# Remove test columns which shift the data right
-combined <- combined[,
-    !grepl("_test$", colnames(combined)),
-    drop = FALSE]
 
-cat("Columns after removing test:\n")
-print(colnames(combined))
-
-# Clean rownames
 rownames(combined) <- gsub("__", " -- ",
                            rownames(combined))
 rownames(combined) <- gsub(" \\(%\\) -- ", " -- ",
                            rownames(combined))
 
-
-# Remove test columns which shift the data right
-combined <- combined[,
-                     !grepl("_test$", colnames(combined)),
-                     drop = FALSE]
-
-cat("Columns after removing test:\n")
-print(colnames(combined))
-# Display labels
 var_labels <- c(
-  "n"                                    = "N",
-  "organ_failure_severe (%)"             = "Organ failure >48 hours",
-  "organ_failure_severe -- No"           = "No",
-  "organ_failure_severe -- Yes"          = "Yes",
-  "critical_care_adm_bin (%)"            = "Admission to critical care",
-  "critical_care_adm_bin -- No"          = "No",
-  "critical_care_adm_bin -- Yes"         = "Yes",
-  "local_complication (%)"               = "Local complication",
-  "local_complication -- No"             = "No",
-  "local_complication -- Yes"            = "Yes",
-  "severity_3 (%)"                       = "Severity",
-  "severity_3 -- Mild"                   = "Mild",
-  "severity_3 -- Moderate"               = "Moderate",
-  "severity_3 -- Severe"                 = "Severe"
+  "n"                                  = "N",
+  "resp_failure_bin (%)"               = "Respiratory failure",
+  "resp_failure_bin -- No"             = "No",
+  "resp_failure_bin -- Yes"            = "Yes",
+  "cvs_failure_bin (%)"                = "Cardiovascular failure",
+  "cvs_failure_bin -- No"              = "No",
+  "cvs_failure_bin -- Yes"             = "Yes",
+  "renal_failure_bin (%)"              = "Renal failure",
+  "renal_failure_bin -- No"            = "No",
+  "renal_failure_bin -- Yes"           = "Yes",
+  "organ_failure_severe (%)"           = "Organ failure >48 hours",
+  "organ_failure_severe -- No"         = "No",
+  "organ_failure_severe -- Yes"        = "Yes",
+  "critical_care_adm_bin (%)"          = "Admission to critical care (HDU/ITU)",
+  "critical_care_adm_bin -- No"        = "No",
+  "critical_care_adm_bin -- Yes"       = "Yes",
+  "local_complication (%)"             = "Local complication",
+  "local_complication -- No"           = "No",
+  "local_complication -- Yes"          = "Yes",
+  "severity_3 (%)"                     = "Severity",
+  "severity_3 -- Mild"                 = "Mild",
+  "severity_3 -- Moderate"             = "Moderate",
+  "severity_3 -- Severe"               = "Severe"
 )
 
 is_header <- rownames(combined) %in%
-  c("n", names(var_labels)[!grepl(" -- ",
-                                  names(var_labels))])
+  c("n", names(var_labels)[
+    !grepl(" -- ", names(var_labels))])
 
 current_rn     <- rownames(combined)
 new_rn         <- var_labels[current_rn]
@@ -302,7 +255,6 @@ is_header <- rownames(combined) %in%
   var_labels[!grepl(" -- ", names(var_labels))]
 is_header[rownames(combined) == "N"] <- TRUE
 
-# Build Variable and Level columns
 variable_col <- character(nrow(combined))
 level_col    <- character(nrow(combined))
 
@@ -320,13 +272,11 @@ for (r in seq_len(nrow(combined))) {
   }
 }
 
-combined_final <- cbind(
+combined_final <- base::cbind(
   Variable = variable_col,
   Level    = level_col,
-  combined
-)
+  combined)
 
-# Fix N row
 n_row      <- which(combined_final[, "Variable"] == "N")
 n_data_row <- which(grepl("^n -- $",
                           combined_final[, "Level"]))
@@ -338,7 +288,6 @@ if (length(n_row) > 0 & length(n_data_row) > 0) {
                                    drop = FALSE]
 }
 
-# Format
 add_percent <- function(cell) {
   gsub("\\(([0-9]+\\.[0-9]+)\\)", "(\\1%)", cell)
 }
@@ -356,12 +305,13 @@ format_cell_commas <- function(cell) {
   cell
 }
 
-# Format p-values
-fmt_p <- function(cell) {
+fmt_p_cell <- function(cell) {
+  if (grepl("\\(", cell)) return(cell)
   if (cell == "" | is.na(cell)) return(cell)
   p <- suppressWarnings(as.numeric(cell))
-  if (is.na(p))   return(cell)
-  if (p < 0.001)  return("<0.001")
+  if (is.na(p))  return(cell)
+  if (p < 0.001) return("<0.001")
+  if (p >= 1)    return("1.00")
   formatC(p, format = "g", digits = 2, flag = "#")
 }
 
@@ -370,20 +320,20 @@ combined_fmt <- apply(combined_final, c(1, 2),
 combined_fmt <- apply(combined_fmt,   c(1, 2),
                       add_percent)
 
-# Apply p-value formatting to p columns only
-p_cols <- grepl("_p$", colnames(combined_fmt))
-for (col in which(p_cols)) {
-  combined_fmt[, col] <- sapply(combined_fmt[, col],
-                                fmt_p)
+p_col_names <- colnames(combined_fmt)[
+  grepl("_p$", colnames(combined_fmt)) &
+    !grepl("Overall|No|Yes|level|Variable|Level",
+           colnames(combined_fmt))]
+
+for (col in p_col_names) {
+  combined_fmt[, col] <- sapply(
+    combined_fmt[, col], fmt_p_cell)
 }
 
 rownames(combined_fmt) <- NULL
 
 cat("\nTable 4\n")
 print(combined_fmt)
-
-# Export to Excel
-library(openxlsx)
 
 df_out <- as.data.frame(combined_fmt,
                         stringsAsFactors = FALSE)
@@ -394,67 +344,65 @@ addWorksheet(wb, "Table 4")
 style_span <- createStyle(
   halign         = "center",
   textDecoration = "bold",
-  border         = "Bottom"
-)
-style_header <- createStyle(
+  border         = "Bottom")
+style_subheader <- createStyle(
   halign         = "center",
-  textDecoration = "bold"
-)
+  textDecoration = "bold")
 style_text <- createStyle(numFmt = "TEXT")
 
-# Column layout:
-# 1-2   = Variable, Level
-# 3-6   = Full cohort (Overall, No, Yes, p)
-# 7-10  = Matched cohort (Overall, No, Yes, p)
+n_data_cols    <- ncol(df_out) - 2
+full_coh_start <- 3
+full_coh_end   <- full_coh_start + (n_data_cols / 2) - 1
+matched_start  <- full_coh_end + 1
+matched_end    <- ncol(df_out)
+
 writeData(wb, "Table 4",
           x = "Full cohort",
-          startRow = 1, startCol = 3)
+          startRow = 1, startCol = full_coh_start)
 mergeCells(wb, "Table 4",
-           cols = 3:6, rows = 1)
+           cols = full_coh_start:full_coh_end, rows = 1)
 
 writeData(wb, "Table 4",
           x = "Propensity-score matched cohort",
-          startRow = 1, startCol = 7)
+          startRow = 1, startCol = matched_start)
 mergeCells(wb, "Table 4",
-           cols = 7:10, rows = 1)
+           cols = matched_start:matched_end, rows = 1)
 
 addStyle(wb, "Table 4",
          style = style_span, rows = 1,
-         cols = 3:10, gridExpand = TRUE)
+         cols  = full_coh_start:matched_end,
+         gridExpand = TRUE)
 
-sub_headers <- c("Variable", "Level",
-                 "Overall", "No", "Yes", "p",
-                 "Overall", "No", "Yes", "p")
+subheaders <- colnames(df_out)
+subheaders <- gsub("Full_|Matched_", "", subheaders)
+subheaders[1] <- "Variable"
+subheaders[2] <- "Level"
 
-for (j in seq_along(sub_headers)) {
+for (j in seq_along(subheaders)) {
   writeData(wb, "Table 4",
-            x = sub_headers[j],
+            x = subheaders[j],
             startRow = 2, startCol = j)
 }
-
 addStyle(wb, "Table 4",
-         style = style_header, rows = 2,
-         cols = 1:10, gridExpand = TRUE)
+         style = style_subheader, rows = 2,
+         cols  = 1:ncol(df_out), gridExpand = TRUE)
 
 writeData(wb, "Table 4",
           x        = df_out,
-          startRow = 3,
-          startCol = 1,
+          startRow = 3, startCol = 1,
           colNames = FALSE)
-
 addStyle(wb, "Table 4",
          style      = style_text,
          rows       = 3:(nrow(df_out) + 3),
-         cols       = 1:10,
+         cols       = 1:ncol(df_out),
          gridExpand = TRUE)
 
 setColWidths(wb, "Table 4",
-             cols = 1:10, widths = "auto")
-
+             cols = 1:ncol(df_out), widths = "auto")
 freezePane(wb, "Table 4", firstActiveRow = 3)
 
 saveWorkbook(wb,
-             "Results/table_4a_severity.xlsx",
+             "Results/table_4_severity.xlsx",
              overwrite = TRUE)
 
-cat("\nSaved Results/table_4a_severity.xlsx\n")
+cat("Saved Results/table_4_severity.xlsx\n")

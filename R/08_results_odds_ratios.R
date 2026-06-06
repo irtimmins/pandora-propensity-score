@@ -1,5 +1,5 @@
 # =============================================
-# 08 - Results convergence summary
+# 08 - Results summary
 # Compares odds ratios across all three methods:
 # propensity score matching (primary), doubly
 # robust matching, and multilevel regression.
@@ -51,34 +51,6 @@ comparison <- results_ps %>%
     by = "outcome") %>%
   dplyr::filter(outcome %in% outcomes) %>%
   dplyr::arrange(match(outcome, outcomes))
-
-cat("Convergence across methods (all MI-based)\n\n")
-cat("Outcomes:\n")
-cat("  composite             = primary composite outcome\n")
-cat("  severity_bin          = severe pancreatitis\n")
-cat("  mort90                = 90-day mortality\n")
-cat("  local_complication    = local complication\n")
-cat("  critical_care_adm_bin = critical care admission\n")
-cat("  readm90               = 90-day readmission\n\n")
-cat("Methods:\n")
-cat("  ps    = PS matching, unadjusted outcome model (primary)\n")
-cat("  dr    = PS matching, covariate-adjusted outcome model\n")
-cat("  reg   = Multilevel logistic regression\n\n")
-
-print(comparison, row.names = FALSE)
-
-# Highlight the composite outcome across all methods
-cat("\nComposite outcome:\n")
-comp <- comparison[comparison$outcome == "composite", ]
-cat(sprintf("  PS matching:    OR %.2f (%.2f-%.2f)  p=%.3f\n",
-            comp$ps_OR,  comp$ps_lower,  comp$ps_upper,
-            comp$ps_p))
-cat(sprintf("  Doubly robust:  OR %.2f (%.2f-%.2f)  p=%.3f\n",
-            comp$dr_OR,  comp$dr_lower,  comp$dr_upper,
-            comp$dr_p))
-cat(sprintf("  Regression:     OR %.2f (%.2f-%.2f)  p=%.3f\n",
-            comp$reg_OR, comp$reg_lower, comp$reg_upper,
-            comp$reg_p))
 
 write.csv(comparison,
           "Results/all_methods_OR.csv",

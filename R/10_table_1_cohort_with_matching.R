@@ -9,8 +9,9 @@ library(tidyverse)
 library(openxlsx)
 
 tab1_vars <- c("age_cat", "gender", "bmi_cat", "cci_cat",
-               "smoking_cat", "alcohol_cat2",
-               "prev_pancreatitis", "gallstones_imaging")
+               "smoking_cat", "alcohol_cat2","diabetes_bin",
+               "prev_pancreatitis", "gallstones_imaging"
+               )
 
 factor_outcomes <- function(d) {
   d %>% mutate(
@@ -22,8 +23,24 @@ factor_outcomes <- function(d) {
 }
 
 # Prepare full cohort with missing shown explicitly
-df_recode <- df %>%
-  haven::zap_labels() %>%
+df_recode <-
+  df %>%
+   mutate(    bmi_cat = case_when(
+     bmi == 5 ~ 0,
+     bmi == 1 ~ 1,
+     bmi == 2 ~ 2,
+     bmi == 3 ~ 3,
+     bmi == 4 ~ 4,
+     bmi == 6 ~ 5,
+     TRUE      ~ NA_real_),
+     bmi_cat = factor(bmi_cat,
+                     levels = 0:5,
+                     labels = c("<18.5 Underweight",
+                                "18.5-24.9 Normal",
+                                "25-29.9 Overweight",
+                                "30-34.9 Class 1 Obesity",
+                                "35-39.9 Class 2 Obesity",
+                                ">40 Class 3 Obesity"))) %>%
   mutate(
     composite             = as.integer(composite),
     severity_bin          = as.integer(severity_bin),
@@ -43,8 +60,17 @@ df_recode <- df %>%
     smoking_cat  = fct_na_value_to_level(
       smoking_cat,  level = "Missing"),
     alcohol_cat2 = fct_na_value_to_level(
-      alcohol_cat2, level = "Missing")
-  ) %>%
+      alcohol_cat2, level = "Missing"),
+    diabetes_bin = case_when(
+      diabetes == 1  ~ 0,
+      diabetes %in% c(2, 3, 4) ~ 1,
+      diabetes == 99 ~ NA_real_,
+      TRUE           ~ NA_real_),
+    diabetes_bin = factor(diabetes_bin,
+                          levels = 0:1,
+                          labels = c("No", "Yes")),
+    diabetes_bin = fct_na_value_to_level(
+      diabetes_bin, level = "Missing")) %>%
   factor_outcomes()
 
 tab_unmatched <- CreateTableOne(
@@ -81,7 +107,16 @@ tab_matched_mi <- CreateTableOne(
                                        "25-29.9 Overweight",
                                        "30-34.9 Class 1 Obesity",
                                        "35-39.9 Class 2 Obesity",
-                                       ">40 Class 3 Obesity"))
+                                       ">40 Class 3 Obesity")),
+      # Diabetes: no missing after imputation
+      # so no fct_na_value_to_level needed
+      diabetes_bin = factor(
+        case_when(
+          diabetes == 1            ~ 0,
+          diabetes %in% c(2, 3, 4) ~ 1,
+          TRUE                     ~ NA_real_),
+        levels = 0:1,
+        labels = c("No", "Yes"))
     ) %>%
     factor_outcomes(),
   factorVars = tab1_vars,
@@ -177,7 +212,7 @@ mat_un_aligned <- align_mat(mat_un, row_order,
 mat_mi_aligned <- align_mat(mat_mi, row_order,
                             "Matched_MI")
 
-combined <- cbind(mat_un_aligned, mat_mi_aligned)
+combined <- base::cbind(mat_un_aligned, mat_mi_aligned)
 
 # Remove test columns -- keep p columns only
 combined <- combined[,
@@ -256,6 +291,10 @@ var_labels <- c(
   "alcohol_cat2 -- 15-35"                      = "15-35",
   "alcohol_cat2 -- >35"                        = ">35",
   "alcohol_cat2 -- Missing"                    = "Missing",
+  "diabetes_bin (%)"        = "Diabetic",
+  "diabetes_bin -- No"      = "No",
+  "diabetes_bin -- Yes"     = "Yes",
+  "diabetes_bin -- Missing" = "Missing",
   "prev_pancreatitis (%)"                      = "History of pancreatitis",
   "prev_pancreatitis -- No"                    = "No",
   "prev_pancreatitis -- Yes"                   = "Yes",
@@ -295,12 +334,11 @@ for (r in seq_len(nrow(combined))) {
   }
 }
 
-combined_final <- cbind(
+combined_final <- base::cbind(
   Variable = variable_col,
   Level    = level_col,
   combined
 )
-
 # Restore N row counts
 n_row <- which(combined_final[, "Variable"] == "N")
 
@@ -367,10 +405,10 @@ fmt_p_cell <- function(cell) {
   if (grepl("\\(", cell)) return(cell)
   if (cell == "" | is.na(cell)) return(cell)
   p <- suppressWarnings(as.numeric(cell))
-  if (is.na(p))   return(cell)
-  if (p < 0.001)  return("<0.001")
-  if (p > 0.999)  return(">0.999")
-  formatC(p, format = "f", digits = 3)
+  if (is.na(p))  return(cell)
+  if (p < 0.001) return("<0.001")
+  if (p >= 1)    return("1.00")
+  formatC(p, format = "g", digits = 2, flag = "#")
 }
 
 p_col_names <- colnames(combined_fmt)[

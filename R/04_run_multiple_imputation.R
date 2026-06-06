@@ -55,10 +55,10 @@ cat("Underweight patients removed:", sum(ignore_vec), "\n")
 
 set.seed(12510)
 imp <- mice(df_mice,
-            m               = 3,
+            m               = 20,
             method          = imp_methods,
             predictorMatrix = pred,
-            maxit           = 5,
+            maxit           = 20,
             ignore          = ignore_vec,
             printFlag       = TRUE)
 

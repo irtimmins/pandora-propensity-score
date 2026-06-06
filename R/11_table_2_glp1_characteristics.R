@@ -218,7 +218,7 @@ for (r in seq_len(nrow(mat_glp1_fmt))) {
   }
 }
 
-combined_final <- cbind(
+combined_final <- base::cbind(
   Variable = variable_col,
   Level    = level_col,
   mat_glp1_fmt

@@ -8,6 +8,7 @@
 df <- read_dta("Data/pandora_clean.dta") %>%
   haven::zap_labels()
 
+
 # Exclusions: missing exposure, missing gender,
 # missing primary outcome or critical care variable
 df <- df %>%
@@ -20,7 +21,7 @@ df <- df %>%
          !is.na(critical_care_adm_bin)) %>%
   mutate(gender = factor(gender,
                          levels = 0:1,
-                         labels = c("Female", "Male")))
+                         labels = c("Male", "Female")))
 
 cat("N after exclusions:", nrow(df), "\n")
 
@@ -139,10 +140,10 @@ df <- df %>%
 cat("CCI distribution:\n")
 print(table(df$cci, useNA = "always"))
 
-# Gallstones on prior or index admission imaging,
-# or gallstones identified as the cause of admission.
+# Gallstones on prior or index admission imaging.
 # Any positive result across all imaging modalities
-# counts as positive.
+# counts as positive. Does not include gallstones
+# as cause of admission -- imaging evidence only.
 df <- df %>%
   mutate(
     gallstones_imaging = as.numeric(
@@ -185,10 +186,6 @@ df <- df %>%
       missing = gallstones_imaging),
     gallstones_imaging = if_else(
       cbd_stones_repeat_adm_CT == 1, 1,
-      gallstones_imaging,
-      missing = gallstones_imaging),
-    gallstones_imaging = if_else(
-      cause_gallstones == 1, 1,
       gallstones_imaging,
       missing = gallstones_imaging),
     gallstones_imaging = factor(gallstones_imaging,
